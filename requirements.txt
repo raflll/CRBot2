@@ -1,0 +1,48 @@
+# Core Dependencies for Merge Fight Tactics Bot
+
+# Terminal UI
+rich==13.7.0
+textual==0.47.1
+click==8.1.7
+
+# Screenshot capture
+mss==9.0.1
+Pillow==10.1.0
+
+# Computer Vision
+opencv-python>=4.8.1.78
+ultralytics>=8.3.0  # YOLOv11 support (requires 8.3.0+)
+numpy==1.24.3
+
+# Deep Learning (choose one)
+torch==2.1.0  # PyTorch
+# tensorflow==2.14.0  # Alternative to PyTorch
+
+# Game Automation
+pyautogui==0.9.54
+pynput==1.7.6
+
+# Data Processing
+pandas==2.0.3
+scikit-image==0.21.0
+matplotlib==3.7.2
+
+# Video Processing (for YouTube scraping)
+yt-dlp==2023.10.13
+
+# Database
+sqlalchemy==2.0.23
+
+# API/Web
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
+colorama==0.4.6
+
+# Development Tools
+pytest==7.4.3
+black==23.11.0
+flake8==6.1.0

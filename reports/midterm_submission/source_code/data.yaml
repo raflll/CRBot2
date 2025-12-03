@@ -1,0 +1,13 @@
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 53
+names: ['archer', 'archer_queen', 'baby_dragon', 'bandit', 'barbarian', 'card_archer', 'card_archer_queen', 'card_baby_drag', 'card_bandit', 'card_barbarian', 'card_dart_goblin', 'card_e_wiz', 'card_electro_giant', 'card_executioner', 'card_giant_skeleton', 'card_goblin', 'card_goblin_machine', 'card_golden_knight', 'card_knight', 'card_mega_knight', 'card_musketeer', 'card_pekka', 'card_prince', 'card_princess', 'card_royal_ghost', 'card_skeleton_dragon', 'card_skeleton_king', 'card_spear_goblin', 'card_valkyrie', 'card_witch', 'card_wizard', 'dart_goblin', 'e_wiz', 'electro_giant', 'executioner', 'giant_skeleton', 'goblin', 'goblin_machine', 'golden_knight', 'knight', 'mega_knight', 'musketeer', 'pekka', 'prince', 'princess', 'royal_ghost', 'skeleton', 'skeleton_dragon', 'skeleton_king', 'spear_goblin', 'valkyrie', 'witch', 'wizard']
+
+roboflow:
+  workspace: bingashlop99
+  project: tobrc-hwtbx
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/bingashlop99/tobrc-hwtbx/dataset/2

@@ -1,0 +1,75 @@
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds, calc}
+
+\begin{document}
+
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!20, font=\small]
+\tikzstyle{component} = [rectangle, minimum width=2.5cm, minimum height=0.8cm, text centered, draw=black, fill=green!15, font=\footnotesize]
+\tikzstyle{decision} = [diamond, minimum width=2cm, minimum height=1cm, text centered, draw=black, fill=orange!20, aspect=2, font=\footnotesize]
+\tikzstyle{arrow} = [-{Stealth[length=3mm]}, thick]
+\tikzstyle{bigarrow} = [-{Stealth[length=4mm]}, very thick, line width=1.5pt]
+\tikzstyle{module} = [rectangle, rounded corners, minimum width=2.5cm, minimum height=0.7cm, text centered, draw=black, fill=purple!15, font=\footnotesize]
+
+\begin{tikzpicture}[node distance=1.5cm]
+
+% Main pipeline nodes
+\node (screen) [process] {\textbf{Game Screen}\\Clash Royale};
+\node (capture) [process, below of=screen] {\textbf{Screenshot Capture}\\MSS Library};
+\node (detection) [process, below of=capture] {\textbf{Detection Pipeline}\\Computer Vision};
+\node (state) [process, below of=detection] {\textbf{State Machine}\\Game Logic};
+\node (action) [process, below of=state] {\textbf{Action Execution}\\PyAutoGUI};
+
+% Detection components (right side)
+\node (troops) [component, right=3cm of detection, yshift=1.2cm] {Troop Detector};
+\node (shop) [component, right=3cm of detection, yshift=0.4cm] {Shop Detector};
+\node (resources) [component, right=3cm of detection, yshift=-0.4cm] {Resource Detector};
+\node (gamestate) [component, right=3cm of detection, yshift=-1.2cm] {Game State Detector};
+
+% State components (right side)
+\node (homestate) [module, right=3cm of state, yshift=1.2cm] {HomeState};
+\node (deploystate) [module, right=3cm of state, yshift=0.4cm] {DeployState};
+\node (battlestate) [module, right=3cm of state, yshift=-0.4cm] {BattleState};
+\node (resultstate) [module, right=3cm of state, yshift=-1.2cm] {Victory/Defeat};
+
+% Technology labels (left side)
+\node (opencv) [component, left=2cm of detection] {OpenCV\\NumPy};
+\node (config) [component, left=2cm of state] {JSON Config\\Strategy};
+
+% Main flow arrows
+\draw [bigarrow] (screen) -- (capture);
+\draw [bigarrow] (capture) -- (detection);
+\draw [bigarrow] (detection) -- (state);
+\draw [bigarrow] (state) -- (action);
+\draw [bigarrow] (action.west) -- ++(-1.5,0) |- (screen.west) node[midway, left, font=\footnotesize] {Control\\Input};
+
+% Detection connections
+\draw [arrow] (detection.east) -- ++(0.5,0) |- (troops.west);
+\draw [arrow] (detection.east) -- ++(0.5,0) |- (shop.west);
+\draw [arrow] (detection.east) -- ++(0.5,0) |- (resources.west);
+\draw [arrow] (detection.east) -- ++(0.5,0) |- (gamestate.west);
+
+% State connections
+\draw [arrow] (state.east) -- ++(0.5,0) |- (homestate.west);
+\draw [arrow] (state.east) -- ++(0.5,0) |- (deploystate.west);
+\draw [arrow] (state.east) -- ++(0.5,0) |- (battlestate.west);
+\draw [arrow] (state.east) -- ++(0.5,0) |- (resultstate.west);
+
+% Technology connections
+\draw [arrow, dashed] (opencv) -- (detection);
+\draw [arrow, dashed] (config) -- (state);
+
+% Data flow labels
+\node[font=\footnotesize, text width=2cm, align=center] at ($(capture)!0.5!(detection) + (-3,0)$) {Raw\\Screenshot};
+\node[font=\footnotesize, text width=2.5cm, align=center] at ($(detection)!0.5!(state) + (-3.2,0)$) {Detection\\Results};
+\node[font=\footnotesize, text width=2cm, align=center] at ($(state)!0.5!(action) + (-3,0)$) {Action\\Commands};
+
+% Group boxes
+\begin{scope}[on background layer]
+    \node[draw=blue!50, thick, rounded corners, fit=(troops) (shop) (resources) (gamestate), fill=blue!5, inner sep=10pt, label={[anchor=north]north:\textbf{Detection Modules}}] {};
+    \node[draw=purple!50, thick, rounded corners, fit=(homestate) (deploystate) (battlestate) (resultstate), fill=purple!5, inner sep=10pt, label={[anchor=north]north:\textbf{State Modules}}] {};
+\end{scope}
+
+\end{tikzpicture}
+
+\end{document}

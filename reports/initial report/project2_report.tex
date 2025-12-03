@@ -1,0 +1,109 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+
+\geometry{letterpaper, margin=1in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\title{\textbf{CRBot: An AI Agent for Clash Royale Merge Fight Tactics}}
+\author{Your Name Here} % TODO: Add your name
+\date{October 31, 2025}
+
+\begin{document}
+
+\maketitle
+
+\section*{Abstract}
+CRBot is an autonomous AI agent designed to play Clash Royale's Merge Fight Tactics mode using computer vision and machine learning. The system integrates real-time screenshot analysis, game state detection, and strategic decision-making through a hierarchical state machine. This initial progress report describes the foundational infrastructure we have built, including automated data collection pipelines, multi-region detection systems, and the core bot architecture. Our initial results demonstrate successful implementation of the computer vision pipeline capable of detecting game elements and states, which forms the basis for autonomous gameplay.
+
+\section*{Initial Result Description}
+
+\subsection*{System Architecture}
+CRBot implements a multi-layered architecture combining computer vision, state management, and game automation:
+
+\textbf{Computer Vision Pipeline:} The detection system (src/detection/) implements specialized detectors for different game regions including troop detection in deployment and battlefield areas, shop item detection, resource tracking (elixir and gold), and game state identification. The system processes screenshots captured at strategic intervals to maintain real-time awareness of game state.
+
+\textbf{State Machine Framework:} A hierarchical state machine (src/bot/states/) manages game flow transitions between HomeState (menu navigation), DeployState (troop deployment phase), BattleState (active combat), VictoryState/DefeatState (match results), and ErrorState (recovery handling). Each state implements enter(), execute(), and exit() methods for clean transitions.
+
+\textbf{Data Collection Infrastructure:} The screenshot\_collector.py module implements automated data gathering with randomized intervals and region switching to capture diverse game scenarios. This infrastructure is essential for building training datasets for future machine learning models.
+
+\subsection*{Technical Implementation}
+The system is built using Python 3.10+ with key dependencies including OpenCV for image processing, MSS for efficient screenshot capture, Pillow for image manipulation, and Textual/Rich for the user interface. The modular design allows for easy extension of detection capabilities and strategy implementations.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{results/architecture_diagram.pdf}
+    \caption{System architecture showing the flow from screenshot capture through detection to action execution. The main pipeline (left) processes screenshots through the detection and state machine systems, while specialized modules (right) handle specific game elements and states.}
+    \label{fig:architecture}
+\end{figure}
+
+% TODO: Add detection example or game screenshots
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.7\textwidth]{results/detection_example.png}
+%     \caption{Sample detection output showing identified game elements and regions.}
+%     \label{fig:detection}
+% \end{figure}
+
+\subsection*{Current Capabilities}
+The initial implementation successfully demonstrates:
+
+\begin{itemize}
+    \item Multi-monitor support with automatic display detection
+    \item Configurable capture regions for different game areas
+    \item JSON-based configuration management for easy parameter tuning
+    \item Dual interface support (Textual TUI and CLI) for different use cases
+    \item Extensible strategy framework for implementing different play styles
+    \item Comprehensive logging system for debugging and analysis
+\end{itemize}
+
+\section*{Discussion}
+
+\subsection*{Relevance to Project Goals}
+This initial result establishes the foundational infrastructure required for an autonomous game-playing agent. The computer vision pipeline is critical because it serves as the "eyes" of the bot, converting raw pixel data into structured game state information. Without accurate detection of troops, resources, and game states, no strategic decisions can be made effectively.
+
+The hierarchical state machine provides the control structure needed to manage complex game flow. Merge Fight Tactics has distinct phases (deployment, battle, shop, results) that require different behaviors and decision-making processes. Our state-based approach mirrors how the game itself is structured, making it easier to implement phase-specific strategies.
+
+The data collection infrastructure addresses a fundamental challenge in building ML-based game agents: acquiring sufficient training data. By automating screenshot collection with randomized timing and region focus, we can gather diverse examples of game states, troop configurations, and outcomes that will be essential for training future deep learning models.
+
+\subsection*{Technical Challenges and Findings}
+Several unexpected challenges emerged during initial development:
+
+\textbf{Screen Coordinate Variability:} Different monitor resolutions and game window positions require dynamic coordinate mapping. We addressed this with automatic monitor detection and configurable region definitions in JSON configuration files.
+
+\textbf{State Detection Reliability:} Distinguishing between similar game states (e.g., deployment phase vs. early battle phase) proved more nuanced than anticipated. This finding suggests we may need more sophisticated vision models or temporal analysis (tracking state changes over multiple frames) for robust state detection.
+
+\textbf{Timing Considerations:} The game's animations and transitions create periods where screenshots may capture inconsistent states. Our randomized collection intervals help gather data from various transition points, but this also means our training data will need careful filtering or augmentation strategies.
+
+\subsection*{Next Steps}
+The immediate next phase involves:
+
+\begin{enumerate}
+    \item Collecting a substantial dataset (target: 1000+ screenshots across different game scenarios)
+    \item Training initial XGBoost models for game element classification using the xgboost\_unified training pipeline
+    \item Implementing and testing basic deployment strategies in the strategy framework
+    \item Validating detection accuracy through the test\_detection.py module
+    \item Developing evaluation metrics to measure bot performance objectively
+\end{enumerate}
+
+The foundation we have built provides clear pathways for both traditional ML approaches (XGBoost for classification tasks) and future deep learning implementations (potentially CNNs for more complex visual recognition or reinforcement learning for strategy optimization).
+
+% TODO: Uncomment if working in a team
+% \section*{Team Member Contributions}
+%
+% \subsection*{Current Contributions}
+% \textbf{Member 1:} [Description of contributions - e.g., "Implemented the computer vision pipeline including all detector modules, designed the state machine architecture, and created the data collection infrastructure."]
+%
+% \textbf{Member 2:} [Description of contributions - e.g., "Developed the user interface components, configured the build system and dependencies, and wrote documentation."]
+%
+% \subsection*{Future Responsibilities}
+% \textbf{Member 1:} [Future work - e.g., "Will focus on training and optimizing machine learning models, implementing advanced detection algorithms, and developing strategic decision-making logic."]
+%
+% \textbf{Member 2:} [Future work - e.g., "Will work on performance optimization, testing framework development, and integration of ML models into the bot execution pipeline."]
+
+\end{document}

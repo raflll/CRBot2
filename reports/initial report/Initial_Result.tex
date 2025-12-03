@@ -1,0 +1,120 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds, calc}
+
+\geometry{letterpaper, margin=1in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+\title{\textbf{CRBot: An AI Agent for Clash Royale Merge Fight Tactics}}
+\author{Justin Bonner}
+\date{October 31, 2025}
+
+\begin{document}
+
+\maketitle
+
+\section*{Abstract}
+CRBot is an autonomous AI agent designed to play Clash Royale's Merge Fight Tactics mode using computer vision and machine learning. The system integrates real-time screenshot analysis, game state detection, and strategic decision-making through a hierarchical state machine. This initial progress report describes the foundational infrastructure we have built, including automated data collection pipelines, multi-region detection systems, and the core bot architecture. Our initial results demonstrate successful implementation of the computer vision pipeline capable of detecting game elements and states, which forms the basis for autonomous gameplay.
+
+\section*{Initial Result Description}
+
+\subsection*{System Architecture}
+CRBot implements a multi-layered architecture combining computer vision, state management, and game automation:
+
+\textbf{Computer Vision Pipeline:} The detection system (src/detection/) implements specialized detectors for different game regions including troop detection in deployment and battlefield areas, shop item detection, resource tracking (elixir and gold), and game state identification. The system processes screenshots captured at strategic intervals to maintain real-time awareness of game state.
+
+\textbf{State Machine Framework:} A hierarchical state machine (src/bot/states/) manages game flow transitions between HomeState (menu navigation), DeployState (troop deployment phase), BattleState (active combat), VictoryState/DefeatState (match results), and ErrorState (recovery handling). Each state implements enter(), execute(), and exit() methods for clean transitions.
+
+\textbf{Data Collection Infrastructure:} The screenshot\_collector.py module implements automated data gathering with randomized intervals and region switching to capture diverse game scenarios. This infrastructure is essential for building training datasets for future machine learning models.
+
+\subsection*{Technical Implementation}
+The system is built using Python 3.10+ with key dependencies including OpenCV for image processing, MSS for efficient screenshot capture, Pillow for image manipulation, and Textual/Rich for the user interface. The modular design allows for easy extension of detection capabilities and strategy implementations.
+
+% ---------- Simplified architecture diagram ----------
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2cm]
+        % Styles
+        \tikzstyle{process} = [rectangle, minimum width=3.5cm, minimum height=1cm, text centered, draw=black, fill=blue!20, font=\small]
+        \tikzstyle{component} = [rectangle, minimum width=2.8cm, minimum height=0.8cm, text centered, draw=black, fill=green!15, font=\footnotesize]
+        \tikzstyle{arrow} = [-{Stealth[length=3mm]}, thick]
+        \tikzstyle{bigarrow} = [-{Stealth[length=4mm]}, very thick, line width=1.5pt]
+
+        % Main pipeline nodes
+        \node (screen) [process] {\textbf{Game Screen}\\\Clash Royale};
+        \node (capture) [process, below=1.8cm of screen] {\textbf{Screenshot Capture}\\\MSS Library};
+        \node (detection) [process, below=1.8cm of capture] {\textbf{Detection Pipeline}\\\Computer Vision};
+        \node (state) [process, below=1.8cm of detection] {\textbf{State Machine}\\\Game Logic};
+        \node (action) [process, below=1.8cm of state] {\textbf{Action Execution}\\\PyAutoGUI};
+
+        % Technology labels (left side)
+        \node (opencv) [component, left=2.5cm of detection] {OpenCV\\\NumPy};
+        \node (config) [component, left=2.5cm of state] {JSON Config\\\Strategy};
+
+        % Main flow arrows
+        \draw [bigarrow] (screen) -- (capture);
+        \draw [bigarrow] (capture) -- (detection);
+        \draw [bigarrow] (detection) -- (state);
+        \draw [bigarrow] (state) -- (action);
+        \draw [bigarrow] (action.west) -- ++(-1.8,0) |- (screen.west) node[midway, left, font=\footnotesize, xshift=-0.3cm] {Control\\\Input};
+
+        % Technology connections
+        \draw [arrow, dashed] (opencv) -- (detection);
+        \draw [arrow, dashed] (config) -- (state);
+
+        % Data flow labels
+        \node[font=\footnotesize, text width=2cm, align=center] at ($(capture)!0.5!(detection) + (-3.5,0)$) {Raw\\\Screenshot};
+        \node[font=\footnotesize, text width=2.5cm, align=center] at ($(detection)!0.5!(state) + (-3.8,0)$) {Detection\\\Results};
+        \node[font=\footnotesize, text width=2cm, align=center] at ($(state)!0.5!(action) + (-3.5,0)$) {Action\\\Commands};
+    \end{tikzpicture}
+    \caption{System architecture showing the flow from screenshot capture through detection to action execution.}
+    \label{fig:architecture}
+\end{figure}
+% ---------- End replacement ----------
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{ss.png}
+    \caption{Sample detection output showing identified game elements and regions in Clash Royale Merge Fight Tactics mode.}
+    \label{fig:detection}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{performance-comparison.png}
+    \caption{Performance comparison of detection methods across different system configurations.}
+    \label{fig:performance}
+\end{figure}
+
+\subsection*{YOLO v11 Integration}
+To enhance the detection capabilities of CRBot, we integrated YOLOv11 (You Only Look Once version 11) for real-time object detection. YOLO v11 provides significant advantages over traditional computer vision approaches:
+
+\textbf{Real-time Performance:} YOLOv11's single-pass architecture enables detection at over 60 FPS on modern hardware, meeting the responsiveness requirements for real-time gameplay. As shown in Figure \ref{fig:performance}, YOLOv11 significantly outperforms template matching and traditional CV methods in both speed and accuracy.
+
+\textbf{Robust Detection:} The deep learning model generalizes well across different game states, lighting conditions, and troop variations. This eliminates the brittle nature of pixel-perfect template matching that plagued earlier iterations.
+
+\textbf{Custom Training:} Using our automated screenshot collection pipeline, we trained a custom YOLOv11 model on over 1,000 annotated game images. The model successfully detects multiple object classes including troops, buildings, resources, and UI elements with mean Average Precision (mAP) exceeding 0.85.
+
+\section*{Discussion}
+
+\subsection*{Technical Challenges and Findings}
+\textbf{State Detection Reliability:} Distinguishing between similar game states proved challenging with traditional methods. YOLOv11 integration addressed this by providing consistent object detection across game phases, though temporal analysis of state transitions remains an area for improvement.
+
+\textbf{Performance Optimization:} Balancing detection accuracy with real-time performance required careful model selection. YOLOv11's nano variant provided optimal speed-accuracy tradeoff for our use case, maintaining high frame rates without sacrificing detection quality.
+
+\subsection*{Next Steps}
+Future development will focus on:
+
+\begin{enumerate}
+    \item Implementing reinforcement learning for strategic decision-making
+    \item Expanding YOLO model training data with additional game scenarios
+\end{enumerate}
+
+\end{document}

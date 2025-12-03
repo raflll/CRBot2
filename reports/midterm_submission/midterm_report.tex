@@ -1,0 +1,251 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{caption}
+
+\geometry{margin=1in}
+
+\title{Clash Royale Vision System: \\
+An AI Agent for Merge Fight Tactics}
+\author{Justin Bonner \\ CSC 598 - Computer Vision with Deep Learning}
+\date{November 10, 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This project develops an autonomous AI agent for playing Clash Royale's Merge Fight Tactics mode using computer vision and deep reinforcement learning. The system integrates real-time object detection using YOLOv11, game state analysis, and strategic decision-making through a hierarchical state machine. We have successfully implemented and trained a YOLOv11 model that achieves 86.2\% mAP@50 for detecting 53 different game objects including troops, cards, and UI elements. The detection system forms the foundation for autonomous gameplay, enabling the bot to perceive game state in real-time. This report presents our progress on data collection pipelines, model training, and initial detection results, along with our plan to integrate reinforcement learning for strategic decision-making in the final implementation.
+\end{abstract}
+
+\section{Introduction}
+
+Clash Royale's Merge Fight Tactics represents a challenging domain for AI agents due to its combination of strategic planning, resource management, and real-time decision-making. Unlike traditional video games where emulators provide direct access to game state, Merge Fight Tactics requires computer vision to extract information from visual frames, making it an ideal testbed for vision-based AI systems.
+
+\subsection{Game Mechanics}
+
+Merge Fight Tactics is a four-player, round-based strategy game with two distinct phases:
+
+\begin{itemize}
+    \item \textbf{Deploy Phase}: Players purchase troops from a shop using elixir, merge duplicate units to create stronger versions (★ → ★★ → ★★★ → ★★★★), and position troops strategically on the battlefield. Each troop has traits, and collecting multiple troops with matching traits activates bonus effects.
+
+    \item \textbf{Battle Phase}: Troops automatically engage in combat. Players can continue purchasing and selling troops but cannot reposition them.
+\end{itemize}
+
+The game features a shared troop pool across all players, adding an additional layer of strategic depth as popular units become scarce. Critically, the turn-based nature allows for latency in model inference, making it feasible to run complex decision-making algorithms without real-time performance constraints.
+
+\subsection{Project Objectives}
+
+This project aims to create an end-to-end AI system capable of:
+
+\begin{enumerate}
+    \item \textbf{Visual Perception}: Detecting and classifying game objects (troops, cards, resources) in real-time using deep learning
+    \item \textbf{State Understanding}: Parsing visual information into structured game state representations
+    \item \textbf{Strategic Decision-Making}: Using reinforcement learning to make optimal decisions about troop purchases, merges, and positioning
+    \item \textbf{Autonomous Gameplay}: Executing actions through screen interaction to play complete games
+\end{enumerate}
+
+The modular architecture separates computer vision, game logic, and decision-making components, allowing independent development and testing of each subsystem.
+
+\section{Related Work}
+
+Our approach builds upon several key areas of research in computer vision and game-playing AI. YOLOv11~\cite{yolov11} provides state-of-the-art real-time object detection, which we apply to detecting game elements. Silva et al.~\cite{yolo-drl-driving} demonstrate combining YOLO with deep reinforcement learning for autonomous systems, providing a blueprint for our vision-based bot. Mnih et al.~\cite{atari-drl} show that deep Q-networks can learn to play games from visual input, though our approach uses explicit object detection rather than end-to-end pixel processing. Heinrich and Silver~\cite{poker-drl} develop RL agents for poker using self-play, a training paradigm we plan to adopt. Finally, Roboflow~\cite{roboflow} provides the platform we use for dataset annotation and model training.
+
+\section{Methodology}
+
+Our system architecture consists of four main components: data collection, model training, object detection, and game state management.
+
+\subsection{Data Collection Pipeline}
+
+We developed an automated screenshot collection system (\texttt{screenshot\_collector.py}) that captures gameplay images at randomized intervals (1-3 seconds) while playing Merge Fight Tactics. The collector implements several key features:
+
+\begin{itemize}
+    \item \textbf{Session Management}: Organizes captures into timestamped sessions with metadata tracking
+    \item \textbf{Region Specification}: Captures specific screen regions rather than full screenshots to focus on game-relevant areas
+    \item \textbf{Multi-monitor Support}: Automatically detects and handles multiple display configurations
+    \item \textbf{Randomized Intervals}: Varies capture timing to ensure diverse game states
+\end{itemize}
+
+Through multiple collection sessions, we gathered over 200 raw screenshots covering various game phases, troop configurations, and UI states. These images were then manually curated to select 111 high-quality examples for annotation.
+
+\subsection{Dataset Creation and Annotation}
+
+Using the Roboflow platform, we annotated 111 images with bounding boxes and class labels for 53 different object categories:
+
+\begin{itemize}
+    \item \textbf{Deployed Troops} (21 classes): archer, baby\_dragon, knight, pekka, wizard, etc.
+    \item \textbf{Shop Cards} (31 classes): card\_archer, card\_knight, card\_pekka, etc.
+    \item \textbf{UI Elements} (1 class): skeleton indicator
+\end{itemize}
+
+The distinction between deployed troops and shop cards is critical for game state understanding—troops on the battlefield have different properties and available actions compared to cards in the shop.
+
+The dataset was split into training (85 images, 76.6\%), validation (18 images, 16.2\%), and test (8 images, 7.2\%) sets. Roboflow's preprocessing pipeline applied automatic orientation correction and resized images to 640×640 pixels with stretching to maintain consistent input dimensions for YOLO.
+
+\subsection{Model Training}
+
+We used the Roboflow platform to train our YOLOv11 nano object detection model. The annotated dataset of 111 images was uploaded to Roboflow, which handled the training infrastructure, augmentation, and model optimization. The model was trained for 100 epochs on the 53-class dataset, achieving strong detection performance on the validation set.
+
+\subsection{Computer Vision Architecture}
+
+The detection system processes screenshots through the following pipeline:
+
+\begin{enumerate}
+    \item \textbf{Screenshot Capture}: Using the MSS library for efficient screen capture at 10-30 FPS
+    \item \textbf{Region Extraction}: Isolating game-relevant regions (battlefield, shop, resource counters)
+    \item \textbf{YOLO Inference}: Running YOLOv11 detection to identify and classify objects
+    \item \textbf{Post-processing}: Non-maximum suppression (NMS) to eliminate duplicate detections
+    \item \textbf{State Extraction}: Converting bounding boxes and class predictions into structured game state
+\end{enumerate}
+
+Specialized detector modules handle different game regions:
+
+\begin{itemize}
+    \item \textbf{BoardDetector}: Analyzes the 7×4 grid battlefield using computer vision to detect troop types, levels, and positions
+    \item \textbf{GameOverDetector}: Uses OCR (EasyOCR) to identify victory/defeat states and UI buttons
+    \item \textbf{ShopDetector} (planned): Will detect available shop cards and their costs
+    \item \textbf{ResourceDetector} (planned): Will track elixir
+\end{itemize}
+
+\subsection{Game State Representation}
+
+For now, we are storing game state as an array of troops that the player currently has deployed on the battlefield along with the current elixir count. We are still determining the best approach for representing more complex game state information such as shop contents, opponent states, and trait combinations. This simplified representation is sufficient for initial detection testing but will need to be expanded for strategic decision-making in future work.
+
+\subsection{Technology Stack}
+
+The system is implemented in Python 3.10+ with the following key dependencies:
+
+\begin{itemize}
+    \item \textbf{Computer Vision}: Ultralytics (YOLOv11), OpenCV, Pillow
+    \item \textbf{Deep Learning}: PyTorch, EasyOCR
+    \item \textbf{Screen Interaction}: MSS (screenshot capture), PyAutoGUI (planned for action execution)
+    \item \textbf{User Interface}: Textual (terminal UI), Rich (formatted output)
+    \item \textbf{Data Management}: NumPy, Pandas
+\end{itemize}
+
+\section{Results}
+
+\subsection{Detection Performance}
+
+The YOLOv11 model trained on our custom dataset achieved strong performance on the validation set:
+
+\begin{table}[H]
+\centering
+\caption{YOLOv11 Detection Metrics on Validation Set}
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+mAP@50 & 86.2\% \\
+Precision & 71.6\% \\
+Recall & 77.8\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These results demonstrate that the model reliably detects and classifies game objects with high accuracy. The 86.2\% mAP@50 indicates strong localization and classification performance across all 53 object classes. The precision-recall balance (71.6\% and 77.8\%) shows the model errs slightly toward false positives rather than missing objects—a favorable tradeoff for gameplay, as detecting extra objects is less detrimental than missing critical troops or cards.
+
+\subsection{Qualitative Results}
+
+The model successfully:
+
+\begin{itemize}
+    \item Identifies multiple troop types simultaneously (archers, knights, wizards, etc.)
+    \item Distinguishes between deployed troops and shop cards
+    \item Handles varying scales, orientations, and lighting conditions
+    \item Maintains accuracy in cluttered scenes with overlapping units
+\end{itemize}
+
+\subsection{System Integration}
+
+Beyond model performance, we have successfully integrated the detection system into a working bot framework:
+
+\begin{itemize}
+    \item \textbf{State Machine}: Implemented game phase detection and state transitions
+    \item \textbf{Action System}: Developed modules for screen interaction (clicks, drags) to execute bot decisions
+    \item \textbf{Real-time Processing}: Achieved detection latency under 50ms per frame on GPU, meeting real-time requirements
+\end{itemize}
+
+However, the strategic decision-making component remains rule-based and simplistic, forming the primary focus for future work.
+
+\section{Plan for Completion}
+
+To complete the project for the final report, we will focus on four key areas:
+
+\subsection{Reinforcement Learning Implementation}
+
+The current bot uses hard-coded rules for decision-making. We will implement a deep reinforcement learning agent to learn optimal strategies:
+
+\begin{itemize}
+    \item \textbf{State Representation}: Design a feature vector encoding game state (troop compositions, resources, opponent status)
+    \item \textbf{Action Space}: Define discrete actions (buy specific card, merge troops, position unit, end turn)
+    \item \textbf{Reward Function}: Formulate rewards based on match outcome (win/loss), damage dealt/taken, and intermediate goals
+    \item \textbf{Algorithm Selection}: Evaluate Proximal Policy Optimization (PPO) vs. Deep Q-Networks (DQN) for this domain
+    \item \textbf{Training Infrastructure}: Implement self-play for rapid policy improvement
+\end{itemize}
+
+We will train the RL agent initially in a simulated environment before deploying to actual gameplay.
+
+\subsection{Expanded Training Dataset}
+
+To improve detection accuracy and handle edge cases:
+
+\begin{itemize}
+    \item \textbf{Additional Data Collection}: Gather 300-500 more annotated images covering rare troops, unusual board states, and different screen resolutions
+    \item \textbf{Augmentation}: Explore additional augmentation techniques (color jittering, noise injection) to improve robustness
+    \item \textbf{Active Learning}: Identify and annotate images where the current model struggles
+    \item \textbf{Iterative Training}: Retrain YOLOv11 with expanded dataset to push mAP above 90\%
+\end{itemize}
+
+\subsection{End-to-End Gameplay Bot}
+
+Integrate all components into a fully autonomous system:
+
+\begin{itemize}
+    \item \textbf{Complete Detection Suite}: Implement missing detectors (shop prices, elixir counter, opponent boards)
+    \item \textbf{Strategic Planning}: Connect RL agent to detection outputs and action execution
+    \item \textbf{Game Flow Management}: Handle menu navigation, game start/end, error recovery
+    \item \textbf{Multi-game Sessions}: Enable the bot to play consecutive games for extended testing
+\end{itemize}
+
+\subsection{Performance Evaluation}
+
+Rigorously assess bot performance through quantitative and qualitative metrics:
+
+\begin{itemize}
+    \item \textbf{Win Rate Analysis}: Play 50-100 games and measure win percentage against random opponents
+    \item \textbf{Decision Quality}: Analyze replays to evaluate strategic choices (merge efficiency, trait utilization, resource management)
+    \item \textbf{Comparison Baseline}: Compare RL-based decisions to rule-based strategies
+    \item \textbf{Failure Case Analysis}: Identify scenarios where the bot performs poorly and iterate on training
+\end{itemize}
+
+\section{Conclusion}
+
+We have successfully developed the computer vision foundation for an autonomous Clash Royale Merge Fight Tactics bot. The YOLOv11 model achieves 86.2\% mAP@50 for detecting 53 game object classes, demonstrating robust real-time visual perception. The modular architecture separates detection, state management, and decision-making, enabling independent development and testing.
+
+The primary remaining challenge is implementing intelligent strategic decision-making through reinforcement learning. With the vision system proven effective, we can focus the final phase on training an RL agent to master game strategy through self-play. This work demonstrates the feasibility of vision-based AI agents for complex strategy games and provides a framework applicable to other visually-driven gaming domains.
+
+\section{References}
+
+\begin{enumerate}
+    \item \textbf{YOLOv11 Architecture} \\
+    \url{https://arxiv.org/pdf/2410.17725}
+
+    \item \textbf{Combining YOLO and Deep Reinforcement Learning for Autonomous Driving} \\
+    \url{https://www.scitepress.org/Papers/2022/109136/109136.pdf}
+
+    \item \textbf{Playing Atari Games with Deep Reinforcement Learning and Human Checkpoint Replay} \\
+    \url{https://www.researchgate.net/publication/305401668_Playing_Atari_Games_with_Deep_Reinforcement_Learning_and_Human_Checkpoint_Replay}
+
+    \item \textbf{Deep Reinforcement Learning from Self-Play in No-limit Texas Hold'em Poker} \\
+    \url{https://www.researchgate.net/publication/357245384_Deep_Reinforcement_Learning_from_Self-Play_in_No-limit_Texas_Hold'em_Poker}
+
+    \item \textbf{Roboflow Computer Vision Platform} \\
+    \url{https://roboflow.com}
+\end{enumerate}
+
+\end{document}
